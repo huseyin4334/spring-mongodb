@@ -243,3 +243,76 @@ db.collection.find({}, {"field2": {$slice: 2}}) # this will return the first 2 e
 db.collection.find({}, {"field2": {$slice: -2}}) # this will return the last 2 elements in field2 array
 
 db.collection.find({}, {"field2": {$slice: [2, 3]}}) # this will return the 3 elements starting from index 2 in field2 array
+
+```
+
+# UPDATE
+- `$set` operator
+  - `db.collection.updateOne({field: value}, {$set: {field2: value2, field3: value3}})`
+  - We can set multiple fields with `$set` operator.
+  - If the field is not exist in the document, it will create a new field with the value.
+  - But if it's exist, it won't override the field.
+- Incrementing and Decrementing
+  - `$inc` operator uses to increment or decrement a field by a specified value.
+  - `$inc` operator can be used with `$set` operator.
+  - `db.users.updateOne({age: 30}, {$inc: {age: 1}})`
+    - age will be incremented by 1.
+  - `db.users.updateOne({age: 30}, {$inc: {age: -1}})`
+    - age will be decremented by 1.
+- `$min`, `$max`, `$mul`
+  - `$min` operator is used to update a field only if the specified value is less than the current value of the field.
+    - `db.users.updateOne({age: 30}, {$min: {age: 25}})`
+      - age will be updated to 25 only if the current value of age is greater than 25. 
+      - We filtered documents that age is 30. Because of that, age fields will change with 25
+    - `db.users.updateOne({age: 20}, {$min: {age: 25}})`
+      - age won't change because the current value of age is less than 25.
+  - `$max` operator is same with `$min` operator.
+  - `$mul` operator is used to multiply a field by a specified value.
+    - `db.users.updateOne({age: 30}, {$mul: {age: 2}})`
+      - age will be multiplied by 2.
+- Getting Rid of Fields (Deleting Fields)
+  - `$unset` operator is used to remove a field from a document.
+    - `db.users.updateOne({age: 30}, {$unset: {age: ""}})`
+      - age field will be removed from the document.
+- Renaming Fields
+  - `$rename` operator is used to rename a field in a document.
+    - `db.users.updateOne({age: 30}, {$rename: {age: "newAge"}})`
+      - age field will be renamed to newAge.
+- `upsert()` 
+  - `upsert` is a combination of update and insert.
+  - If the document is not exist, it will create a new document with the specified fields.
+  - If the document is exist, it will update the document with the specified fields.
+  - `db.users.updateOne({name: "Maria"}, {$set: {age: 35}}, {upsert: true})`
+    - If the document is not exist, it will create a new document with age: 35 and name: Maria.
+- Update Array Elements
+  - Match and update or set array fields
+    - `db.users.updateMany({$and: [{"hobbies.title": "Sports"}, {"hobbies.freq": {$gt: 4}}]}, {$set: {"hobbies.$[].highFreq": true}})`
+    - `db.users.updateMany({hobbies: {$elemMatch: {"title": "Sports", "freq": {$gt: 4}}}}, {$set: {"hobbies.$[].highFreq": true}})`
+      - These queries are same.
+      - This will update the first element in the hobbies array that matches the condition.
+      - If we want to update all elements in the array, we can use `$[]` operator.
+      - The difference with `$` and `$[]` is that `$` operator will update the first element that matches the condition.
+      - When we use `updateOne` we will use `$`. When we use `updateMany` we will use `$[]`.
+      - But don't forget we filtered documents. Not array elements. Because of that, when we update or insert something in array, it will applied for all elements.
+  - match and update or set specific elements of fields
+    - `db.users.updateMany({hobbies: {$elemMatch: {"title": "Sports", "freq": {$gt: 4}}}}, {$set: {"hobbies.$[el].highFreq": true}}, {arrayFilters: [{"el.freq": {$gt: 4}}]})`
+      - We can use `arrayFilters` to filter the elements in the array.
+      - In this case, we filtered the elements with `freq` greater than 4.
+      - This means, only will be set `highFreq` elements on the array that has `freq` greater than 4.	 Others won't have this variable.
+  - add new array elements
+    - `db.users.updateMany({hobbies: {$elemMatch: {"title": "Sports", "freq": {$gt: 4}}}}, {$push: {hobbies: {title: "Hokey", freq: 3}}})`
+      - We can use `push` operator to add a new element to the array.
+    - `db.users.updateMany({hobbies: {$elemMatch: {"title": "Sports", "freq": {$gt: 4}}}}, {$push: {hobbies: {$each: [{title: "Hokey", freq: 3}, {title: "Basketball", freq: 5}], $sort: {freq: -1}, $slice: 10}}})`
+      - We can use `each` operator to add multiple elements to the array.
+      - When we add `$sort`, it will sort the array by the specified field. It will change the order of the array in the document and database.
+      - When we add `$slice`, it will limit the number of elements in the array. It will remove other elements from the array in the document and database.
+    - `db.users.updateMany({hobbies: {$elemMatch: {"title": "Sports", "freq": {$gt: 4}}}}, {$addToSet: {hobbies: {$each: [{title: "Hokey", freq: 3}, {title: "Basketball", freq: 5}]}}})`
+      - `addtoSet` controls the array that it has the same element or not. If element is exist in the array, it won't add it again.
+      - If we use `push`, it will add the element to the array even if it's exist in the array.
+  - match and delete array elements
+    - `db.users.updateMany({hobbies: {$elemMatch: {"title": "Sports", "freq": {$gt: 4}}}}, {$pull: {hobbies: {title: "Hokey"}}})`
+      - It will remove all elements that match the condition.
+    - `db.users.updateMany({hobbies: {$elemMatch: {"title": "Sports", "freq": {$gt: 4}}}}, {$pull: {hobbies: {title: "Hokey", freq: 3}}})`
+      - We can use `pull` operator to remove an element from the array with multiple conditions.
+    - `db.users.updateMany({hobbies: {$elemMatch: {"title": "Sports", "freq": {$gt: 4}}}}, {$pop: {hobbies: 1}})`
+      - It will delete last element of the array. If we use -1, it will delete first element of the array.
