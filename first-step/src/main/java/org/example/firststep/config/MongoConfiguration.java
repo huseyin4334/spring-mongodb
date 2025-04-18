@@ -9,7 +9,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 
+@EnableMongoRepositories(basePackages = "org.example.firststep.repository.mongo")
 @RequiredArgsConstructor
 @Configuration
 public class MongoConfiguration {
@@ -27,7 +29,7 @@ public class MongoConfiguration {
     }
 
     @Bean
-    MongoOperations mongoTemplate(MongoClient mongoClient) {
+    MongoTemplate mongoTemplate(MongoClient mongoClient) {
         return new MongoTemplate(mongoClient, environment.getRequiredProperty("spring.data.mongodb.database"));
     }
 
